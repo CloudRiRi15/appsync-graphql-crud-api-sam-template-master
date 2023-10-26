@@ -37,7 +37,7 @@ mutation update {
 
 mutation delete {
   deletestudent(studentId: 52400", courseId:"65900") {
-    studentrId
+    studentId
     courseId
   }
 }
