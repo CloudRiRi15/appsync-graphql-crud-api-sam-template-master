@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
-Description:  A Serverless Graphql API for A Student Information Management System (SIMS)
+Description: A Serverless GraphQL API for a Student Information Management System (SIMS)
 
 Parameters:
   APIName:
@@ -9,24 +9,23 @@ Parameters:
     MinLength: 3
     MaxLength: 20
     Default: AppSyncApi
-    AllowedPattern: '^[a-zA-Z][a-zA-Z0-9_]*$'
+    AllowedPattern: '^[a-zA-Z][a-zA-Z0-9_]*'
   APIStage:
     Type: String
     Description: The name of the API stage
     MinLength: 3
     MaxLength: 20
     Default: dev
-    AllowedPattern: '^[a-zA-Z][a-zA-Z0-9_]*$'
+    AllowedPattern: '^[a-zA-Z][a-zA-Z0-9_]*'
     
-
 Globals:
   Function:
     Runtime: nodejs18.x
     Timeout: 10
     MemorySize: 128
     Environment:
-        Variables:
-          TABLE_NAME: !Ref StudentInfoTable
+      Variables:
+        TABLE_NAME: !Ref StudentInfoTable
 
 Resources:
   StudentInfoTable:
@@ -61,10 +60,7 @@ Resources:
             - Effect: Allow
               Action:
                 - dynamodb:GetItem
-              Resource: !GetAtt StudentInfoTable.Arn
-      Metadata:
-      AWS::CloudFormation::Capabilities:
-        - CAPABILITY_NAMED_IAM         
+              Resource: !GetAtt StudentInfoTable.Arn      
   
   CreateStudentFunction:
     Type: "AWS::Serverless::Function"
@@ -79,10 +75,7 @@ Resources:
             - Effect: Allow
               Action:
                 - dynamodb:PutItem
-              Resource: !GetAtt StudentInfoTable.Arn  
-      Metadata:
-      AWS::CloudFormation::Capabilities:
-        - CAPABILITY_NAMED_IAM        
+              Resource: !GetAtt StudentInfoTable.Arn    
   
   UpdateStudentFunction:
     Type: "AWS::Serverless::Function"
@@ -97,10 +90,7 @@ Resources:
             - Effect: Allow
               Action:
                 - dynamodb:UpdateItem
-              Resource: !GetAtt StudentInfoTable.Arn
-      Metadata:
-      AWS::CloudFormation::Capabilities:
-        - CAPABILITY_NAMED_IAM         
+              Resource: !GetAtt StudentInfoTable.Arn     
   
   DeleteStudentFunction:
     Type: "AWS::Serverless::Function"
@@ -115,10 +105,7 @@ Resources:
             - Effect: Allow
               Action:
                 - dynamodb:DeleteItem
-              Resource: !GetAtt StudentInfoTable.Arn
-      Metadata:
-      AWS::CloudFormation::Capabilities:
-        - CAPABILITY_NAMED_IAM        
+              Resource: !GetAtt StudentInfoTable.Arn    
   
   LambdaRole:
     Type: AWS::IAM::Role
@@ -157,7 +144,7 @@ Resources:
   
   AppSyncApi:
     Type: "AWS::AppSync::GraphQLApi"
-    Description: The GraphQL API for A Student Information Management System (SIMS)
+    Description: The GraphQL API for a Student Information Management System (SIMS)
     Properties:
       AuthenticationType: API_KEY
       Name: !Sub ${APIName}-${APIStage}
@@ -171,6 +158,7 @@ Resources:
   
 AppSyncSchema:
   Type: "AWS::AppSync::GraphQLSchema"
+  DependsOn: AppSyncApi
   Properties:
     ApiId: !GetAtt AppSyncApi.ApiId
     Definition: |
@@ -197,7 +185,7 @@ AppSyncSchema:
 
       type Mutation {
         createStudent(
-         studentId: ID!,
+          studentId: ID!,
           courseId: ID!,
           name: String!,
           email: String!,
@@ -234,7 +222,7 @@ AppSyncSchema:
     Type: "AWS::AppSync::DataSource"
     Properties:
       ApiId: !GetAtt AppSyncApi.ApiId
-      Name: !Sub ${APIName}_lambda_get_student_${APIStage} # A name starts with letter and contains only numbers, letters and "_"
+      Name: !Sub ${APIName}_lambda_get_student_${APIStage} # A name starts with a letter and contains only numbers, letters, and "_"
       Description: Datasource for getting student data
       Type: "AWS_LAMBDA"
       ServiceRoleArn: !GetAtt LambdaRole.Arn
@@ -245,7 +233,7 @@ AppSyncSchema:
     Type: "AWS::AppSync::DataSource"
     Properties:
       ApiId: !GetAtt AppSyncApi.ApiId
-      Name: !Sub ${APIName}_lambda_create_student_${APIStage} # A name starts with letter and contains only numbers, letters and "_"
+      Name: !Sub ${APIName}_lambda_create_student_${APIStage} # A name starts with a letter and contains only numbers, letters, and "_"
       Description: Datasource for saving student data
       Type: "AWS_LAMBDA"
       ServiceRoleArn: !GetAtt LambdaRole.Arn
@@ -256,7 +244,7 @@ AppSyncSchema:
     Type: "AWS::AppSync::DataSource"
     Properties:
       ApiId: !GetAtt AppSyncApi.ApiId
-      Name: !Sub ${APIName}_lambda_update_student_${APIStage} # A name starts with letter and contains only numbers, letters and "_"
+      Name: !Sub ${APIName}_lambda_update_student_${APIStage} # A name starts with a letter and contains only numbers, letters, and "_"
       Description: Datasource for updating student data
       Type: "AWS_LAMBDA"
       ServiceRoleArn: !GetAtt LambdaRole.Arn
@@ -267,7 +255,7 @@ AppSyncSchema:
     Type: "AWS::AppSync::DataSource"
     Properties:
       ApiId: !GetAtt AppSyncApi.ApiId
-      Name: !Sub ${APIName}_lambda_delete_student_${APIStage} # A name starts with letter and contains only numbers, letters and "_"
+      Name: !Sub ${APIName}_lambda_delete_student_${APIStage} # A name starts with a letter and contains only numbers, letters, and "_"
       Description: Datasource for deleting student data
       Type: "AWS_LAMBDA"
       ServiceRoleArn: !GetAtt LambdaRole.Arn

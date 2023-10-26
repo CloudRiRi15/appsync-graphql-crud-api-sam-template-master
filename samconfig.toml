@@ -7,5 +7,5 @@ region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_NAMED_IAM"
 disable_rollback = true
-parameter_overrides = "APIName=\"GraphQLAPI\" APIStage=\"dev\""
+parameter_overrides = "APIName=\"AppSyncApi\" APIStage=\"dev\""
 image_repositories = []
