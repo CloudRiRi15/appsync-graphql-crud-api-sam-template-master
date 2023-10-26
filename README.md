@@ -1,47 +1,44 @@
 # AppSync GraphQL CRUD API SAM Template
 
-You can find here a basic serverless CRUD AppSync GraphQL API. You can save, retrieve, update and delete a lead/contact. 
+You can find here a basic serverless CRUD AppSync GraphQL API. You can create, retrieve, update and delete student information. 
 
-## Todo:
+To get this workshop setup you will need to do the following:
 
-1. `git clone` this repository
-2. **Important:** change the name of the bucket inside `package.json` (bucket names must be unique)
-3. `npm run qd` it will automatically start the packaging and deployment process
-4. Once it's done, go into [AWS AppSync Console](https://console.aws.amazon.com/appsync/home?region=us-east-1#/)
-5. Choose your API e.g.`AppSyncApi-dev` and click on Queries
-6. Have fun
+ **Important:** change the name of the bucket inside `package.json` (bucket names must be unique)
+ `npm run qd` it will automatically start the packaging and deployment process
+
 
 ## Some Sample Queries
 
 ```graphql
-mutation save {
-  saveLead(customerId: "001", leadId: "001", name: "Dimitri Tarasowski", company: "Amazon LLC", email: "dimitri@amazon.com") {
+mutation create {
+  createStudent(studentId: "52400", courseId: "65900", name: "Olivia Benson", year: "2022", email: "oliviabenson@svu.com) {
     name
-    company
+    year
     email
   }
 }
 
 query get {
-  getLead(customerId: "001", leadId: "001") {
+  getStudent(studentId: "52400", studentId: "65900") {
     name
-    company
+    year
     email
   }
 }
 
 mutation update {
-  updateLead(customerId: "001", leadId: "001", name: "Jeff Bezos", company: "Google LLC", email: "jeff@google.com") {
+  updateStudent(customerId: "52400", coursed: "65900", name: "Leeroy Jethro Gibbs", year: "2023", email: "gibbs@ncis.com") {
     name
-    company
+    year
     email
   }
 }
 
 mutation delete {
-  deleteLead(customerId: "001", leadId:"001") {
-    customerId
-    leadId
+  deletestudent(studentId: 52400", courseId:"65900") {
+    studentrId
+    courseId
   }
 }
 ```
