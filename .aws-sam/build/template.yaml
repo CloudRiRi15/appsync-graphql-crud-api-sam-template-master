@@ -1,0 +1,355 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A Serverless Graphql API for A Student Information Management System
+  (SIMS)
+Parameters:
+  APIName:
+    Type: String
+    Description: The name of the API
+    MinLength: 3
+    MaxLength: 20
+    Default: AppSyncApi
+    AllowedPattern: ^[a-zA-Z][a-zA-Z0-9_]*$
+  APIStage:
+    Type: String
+    Description: The name of the API stage
+    MinLength: 3
+    MaxLength: 20
+    Default: dev
+    AllowedPattern: ^[a-zA-Z][a-zA-Z0-9_]*$
+Globals:
+  Function:
+    Runtime: nodejs18.x
+    Timeout: 10
+    MemorySize: 30
+    Environment:
+      Variables:
+        TABLE_NAME:
+          Ref: StudentInfoTable
+Resources:
+  StudentInfoTable:
+    Type: AWS::DynamoDB::Table
+    Description: Data stores for AppSync Student Information API
+    Properties:
+      TableName:
+        Fn::Sub: ${APIName}-student-info-table-${APIStage}
+      AttributeDefinitions:
+      - AttributeName: studentId
+        AttributeType: S
+      - AttributeName: courseId
+        AttributeType: S
+      KeySchema:
+      - AttributeName: studentId
+        KeyType: HASH
+      - AttributeName: courseId
+        KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+  GetStudentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: api/services/student-info/get-student.handler
+      Description: This lambda function performs read operations and returns student
+        information into DynamoDB table
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - dynamodb:GetItem
+          Resource:
+            Fn::GetAtt:
+            - StudentInfoTable
+            - Arn
+      CodeUri: GetStudentFunction
+    Metadata:
+      SamResourceId: GetStudentFunction
+  CreateStudentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: api/services/student-info/create-student.handler
+      Description: This lambda function performs create operations and inserts student
+        information into DynamoDB table
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - dynamodb:PutItem
+          Resource:
+            Fn::GetAtt:
+            - StudentInfoTable
+            - Arn
+      CodeUri: CreateStudentFunction
+    Metadata:
+      SamResourceId: CreateStudentFunction
+  UpdateStudentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: api/services/student-info/update-student.handler
+      Description: This lambda function performs update operations and updates student
+        information into DynamoDB table
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - dynamodb:UpdateItem
+          Resource:
+            Fn::GetAtt:
+            - StudentInfoTable
+            - Arn
+      CodeUri: UpdateStudentFunction
+    Metadata:
+      SamResourceId: UpdateStudentFunction
+  DeleteStudentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: api/services/student-info/delete-student.handler
+      Description: This lambda function performs delete operations and deletes student
+        information into DynamoDB table
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - dynamodb:DeleteItem
+          Resource:
+            Fn::GetAtt:
+            - StudentInfoTable
+            - Arn
+      CodeUri: DeleteStudentFunction
+    Metadata:
+      SamResourceId: DeleteStudentFunction
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: ${APIName}-appsync-lambda-role-${APIStage}
+      ManagedPolicyArns:
+      - Ref: AppSyncLambdaPolicy
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - sts:AssumeRole
+          Principal:
+            Service:
+            - appsync.amazonaws.com
+    DependsOn:
+    - AppSyncLambdaPolicy
+  AppSyncLambdaPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Managed policy to allow AppSync to access tables in DynamoDb
+      Path: /appsync/
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - lambda:InvokeFunction
+          Resource:
+          - Fn::GetAtt:
+            - GetStudentFunction
+            - Arn
+          - Fn::GetAtt:
+            - CreateStudentFunction
+            - Arn
+          - Fn::GetAtt:
+            - UpdateStudentFunction
+            - Arn
+          - Fn::GetAtt:
+            - DeleteStudentFunction
+            - Arn
+  AppSyncApi:
+    Type: AWS::AppSync::GraphQLApi
+    Description: The GraphQL API for A Student Information Management System (SIMS)
+    Properties:
+      AuthenticationType: API_KEY
+      Name:
+        Fn::Sub: ${APIName}-${APIStage}
+  AppSyncApiKey:
+    Type: AWS::AppSync::ApiKey
+    Properties:
+      Description: Api Key for AppSync SIMS API
+      Expires: 1558173017
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncApi
+        - ApiId
+  AppSyncSchema:
+    Type: AWS::AppSync::GraphQLSchema
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncApi
+        - ApiId
+      Definition: "type Delete {\n  studentId: ID!\n  courseId: ID!\n}\n\ntype Get\
+        \ {\n  studentId: ID!\n  courseId: ID!\n  name: String\n  email: String\n\
+        \  year: Int\n}\n\ntype Mutation {\n  createStudent(\n   studentId: ID!,\n\
+        \    courseId: ID!,\n    name: String!,\n    email: String!,\n    year: Int!\n\
+        \  ): Create\n  deleteStudent(studentId: ID!, courseId: ID!): Delete\n  updateStudent(\n\
+        \    studentId: ID!,\n    courseId: ID!,\n    name: String!,\n    email: String!,\n\
+        \    year: Int!\n  ): Update\n}\n\ntype Query {\n  getStudent(studentId: ID!,\
+        \ courseId: ID!): Get\n}\n\ntype Save {\n  studentId: ID!\n  courseId: ID!\n\
+        \  name: String\n  email: String\n  year: Int\n}\n\ntype Update {\n  studentId:\
+        \ ID!\n  courseId: ID!\n  name: String\n  email: String\n  year: Int\n}\n\n\
+        schema {\n  query: Query\n  mutation: Mutation\n}\n"
+  AppSyncLambdaGetStudentDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncApi
+        - ApiId
+      Name:
+        Fn::Sub: ${APIName}_lambda_get_student_${APIStage}
+      Description: Datasource for getting student data
+      Type: AWS_LAMBDA
+      ServiceRoleArn:
+        Fn::GetAtt:
+        - LambdaRole
+        - Arn
+      LambdaConfig:
+        LambdaFunctionArn:
+          Fn::GetAtt:
+          - GetStudentFunction
+          - Arn
+  AppSyncLambdaCreateStudentDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncApi
+        - ApiId
+      Name:
+        Fn::Sub: ${APIName}_lambda_create_student_${APIStage}
+      Description: Datasource for saving student data
+      Type: AWS_LAMBDA
+      ServiceRoleArn:
+        Fn::GetAtt:
+        - LambdaRole
+        - Arn
+      LambdaConfig:
+        LambdaFunctionArn:
+          Fn::GetAtt:
+          - CreateStudentFunction
+          - Arn
+  AppSyncLambdaUpdateStudentDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncApi
+        - ApiId
+      Name:
+        Fn::Sub: ${APIName}_lambda_update_student_${APIStage}
+      Description: Datasource for updating student data
+      Type: AWS_LAMBDA
+      ServiceRoleArn:
+        Fn::GetAtt:
+        - LambdaRole
+        - Arn
+      LambdaConfig:
+        LambdaFunctionArn:
+          Fn::GetAtt:
+          - UpdateStudentFunction
+          - Arn
+  AppSyncLambdaDeleteStudentDataSource:
+    Type: AWS::AppSync::DataSource
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncApi
+        - ApiId
+      Name:
+        Fn::Sub: ${APIName}_lambda_delete_student_${APIStage}
+      Description: Datasource for deleting student data
+      Type: AWS_LAMBDA
+      ServiceRoleArn:
+        Fn::GetAtt:
+        - LambdaRole
+        - Arn
+      LambdaConfig:
+        LambdaFunctionArn:
+          Fn::GetAtt:
+          - DeleteStudentFunction
+          - Arn
+  AppSyncGetStudentResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncApi
+        - ApiId
+      TypeName: Query
+      DataSourceName:
+        Fn::GetAtt:
+        - AppSyncLambdaGetStudentDataSource
+        - Name
+      FieldName: getStudent
+      RequestMappingTemplate: "{\n  \"version\" : \"2017-02-28\",\n  \"operation\"\
+        : \"Invoke\",\n  \"payload\": $util.toJson($context.args)\n}\n"
+      ResponseMappingTemplate: $util.toJson($context.result)
+  AppSyncCreateStudentResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncApi
+        - ApiId
+      TypeName: Mutation
+      DataSourceName:
+        Fn::GetAtt:
+        - AppSyncLambdaCreateStudentDataSource
+        - Name
+      FieldName: createStudent
+      RequestMappingTemplate: "{\n  \"version\" : \"2017-02-28\",\n  \"operation\"\
+        : \"Invoke\",\n  \"payload\": $util.toJson($context.args)\n}\n"
+      ResponseMappingTemplate: $util.toJson($context.result)
+  AppSyncUpdateStudentResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncApi
+        - ApiId
+      TypeName: Mutation
+      DataSourceName:
+        Fn::GetAtt:
+        - AppSyncLambdaUpdateStudentDataSource
+        - Name
+      FieldName: updateStudent
+      RequestMappingTemplate: "{\n  \"version\" : \"2017-02-28\",\n  \"operation\"\
+        : \"Invoke\",\n  \"payload\": $util.toJson($context.args)\n}\n"
+      ResponseMappingTemplate: $util.toJson($context.result)
+  AppSyncDeleteStudentResolver:
+    Type: AWS::AppSync::Resolver
+    DependsOn: AppSyncSchema
+    Properties:
+      ApiId:
+        Fn::GetAtt:
+        - AppSyncApi
+        - ApiId
+      TypeName: Mutation
+      DataSourceName:
+        Fn::GetAtt:
+        - AppSyncLambdaDeleteStudentDataSource
+        - Name
+      FieldName: deleteStudent
+      RequestMappingTemplate: "{\n  \"version\" : \"2017-02-28\",\n  \"operation\"\
+        : \"Invoke\",\n  \"payload\": $util.toJson($context.args)\n}\n"
+      ResponseMappingTemplate: $util.toJson($context.result)
+Outputs:
+  GraphQLApiEndpoint:
+    Description: Here is your GraphQL endpoint URL
+    Value:
+      Fn::GetAtt:
+      - AppSyncApi
+      - GraphQLUrl
